@@ -50,6 +50,7 @@
 #define EGP_TABLE (1<<1)
 
 struct pull_params_t;
+class colvarproxy_gromacs;
 
 namespace gmx
 {
@@ -398,6 +399,10 @@ struct t_inputrec
     gmx_bool                 useTwinRange; // Whether twin-range scheme is active - always false if a valid .tpr was read
 
     gmx::KeyValueTreeObject *params;
+
+    /* COLVARS */
+    gmx_bool                bColvars;       /* Do we do colvars calculations ? */
+    colvarproxy_gromacs     *colvars_proxy; /* The object for the colvars calculations */
 };
 
 int ir_optimal_nstcalcenergy(const t_inputrec *ir);
