@@ -113,6 +113,7 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/strconvert.h"
 #include "gromacs/utility/sysinfo.h"
+#include "gromacs/colvars/colvarproxy_gromacs.h"
 
 using gmx::AtomLocality;
 using gmx::DomainLifetimeWorkload;
@@ -553,6 +554,16 @@ static void computeSpecialForces(FILE*                          fplog,
      */
     if (stepWork.computeForces)
     {
+
+        /* COLVARS */
+        /* Colvars Module needs some updated data - just PBC & step number - before calling its ForceProvider */
+        if (inputrec->bColvars)
+        {
+            t_pbc pbc;
+            set_pbc(&pbc, inputrec->ePBC, box);
+            inputrec->colvars_proxy->update_data(cr, step, pbc, box, didNeighborSearch);
+        }
+
         gmx::ForceProviderInput  forceProviderInput(x, *mdatoms, t, box, *cr);
         gmx::ForceProviderOutput forceProviderOutput(forceWithVirial, enerd);
 

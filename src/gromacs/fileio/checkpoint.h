@@ -175,6 +175,8 @@ struct CheckpointHeaderContents
     int nED;
     //! Enum for coordinate swapping.
     int eSwapCoords;
+    //! Colvars
+    int ecolvars;
 };
 
 /* Write a checkpoint to <fn>.cpt
