@@ -87,7 +87,7 @@ class Mdrunner
         //! Parallelism-related user options.
         gmx_hw_opt_t             hw_opt;
         //! Filenames and properties from command-line argument values.
-        std::array<t_filenm, 34> filenames =
+        std::array<t_filenm, 36> filenames =
         {{{ efTPR, nullptr,     nullptr,     ffREAD },
           { efTRN, "-o",        nullptr,     ffWRITE },
           { efCOMPRESSED, "-x", nullptr,     ffOPTWR },
@@ -121,6 +121,8 @@ class Mdrunner
           { efTOP, "-mp",       "membed",    ffOPTRD },
           { efNDX, "-mn",       "membed",    ffOPTRD },
           { efXVG, "-if",       "imdforces", ffOPTWR },
+          { efDAT, "-colvars",  "colvars",   ffOPTRDMULT },   /* COLVARS */
+          { efDAT, "-colvars_restart", "colvars",  ffOPTRD },   /* COLVARS */
           { efXVG, "-swap",     "swapions",  ffOPTWR }}};
         /*! \brief Filename arguments.
          *

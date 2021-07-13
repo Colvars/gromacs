@@ -72,7 +72,6 @@
 #include "gromacs/mdtypes/observableshistory.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/mdtypes/swaphistory.h"
-#include "gromacs/mdtypes/colvarshistory.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arrayref.h"
 #include "gromacs/utility/baseversion.h"
@@ -100,10 +99,7 @@
  * But old code can not read a new entry that is present in the file
  * (but can read a new format when new entries are not present).
  */
-/*
- * Add a value of 1000 for Colvars support
- */
-static const int cpt_version = 17 + 1000;
+static const int cpt_version = 17;
 
 
 const char *est_names[estNR] =
@@ -890,7 +886,7 @@ static void do_cpt_header(XDR *xd, gmx_bool bRead, int *file_version,
                           int *natoms, int *ngtc, int *nnhpres, int *nhchainlength,
                           int *nlambda, int *flags_state,
                           int *flags_eks, int *flags_enh, int *flags_dfh, int *flags_awhh,
-                          int *nED, int *eSwapCoords, int *ecolvars,
+                          int *nED, int *eSwapCoords,
                           FILE *list)
 {
     bool_t res = 0;
@@ -1049,14 +1045,6 @@ static void do_cpt_header(XDR *xd, gmx_bool bRead, int *file_version,
     else
     {
         *flags_awhh = 0;
-    }
-    if (*file_version >= 17 + 1000)
-    {
-        do_cpt_int_err(xd, "colvars atoms", ecolvars, list);
-    }
-    else
-    {
-        *ecolvars = 0;
     }
 }
 
@@ -1524,37 +1512,6 @@ static int do_cpt_EDstate(XDR *xd, gmx_bool bRead,
     return 0;
 }
 
-
-/* This function stores the last whole configuration of the colvars atoms in the .cpt file */
-static int do_cpt_colvars(XDR* xd, gmx_bool bRead, int ecolvars, colvarshistory_t* colvarsstate, FILE* list)
-{
-
-    if (ecolvars == 0)
-    {
-        return 0;
-    }
-
-    colvarsstate->bFromCpt = bRead;
-    colvarsstate->n_atoms  = ecolvars;
-
-    /* Write data */
-    char buf[STRLEN];
-    sprintf(buf, "Colvars atoms in reference structure : %d", ecolvars);
-    sprintf(buf, "Colvars xa_old");
-    if (bRead)
-    {
-        snew(colvarsstate->xa_old_whole, colvarsstate->n_atoms);
-        do_cpt_n_rvecs_err(xd, buf, colvarsstate->n_atoms, colvarsstate->xa_old_whole, list);
-    }
-    else
-    {
-        do_cpt_n_rvecs_err(xd, buf, colvarsstate->n_atoms, colvarsstate->xa_old_whole_p, list);
-    }
-
-    return 0;
-}
-
-
 static int do_cpt_correlation_grid(XDR *xd, gmx_bool bRead, gmx_unused int fflags,
                                    gmx::CorrelationGridHistory *corrGrid,
                                    FILE *list, int eawhh)
@@ -1961,17 +1918,13 @@ void write_checkpoint(const char *fn, gmx_bool bNumberAndKeep,
     swaphistory_t  *swaphist    = observablesHistory->swapHistory.get();
     int             eSwapCoords = (swaphist ? swaphist->eSwapCoords : eswapNO);
 
-    /* COLVARS */
-    colvarshistory_t *colvarshist = observablesHistory->colvarsHistory.get();
-    int               ecolvars    = (colvarshist ? colvarshist->n_atoms : 0);
-
     do_cpt_header(gmx_fio_getxdr(fp), FALSE, &file_version,
                   &version, &btime, &buser, &bhost, &double_prec, &fprog, &ftime,
                   &eIntegrator, &simulation_part, &step, &t, &nppnodes,
                   DOMAINDECOMP(cr) ? domdecCells : nullptr, &npmenodes,
                   &state->natoms, &state->ngtc, &state->nnhpres,
                   &state->nhchainlength, &nlambda, &state->flags, &flags_eks, &flags_enh, &flags_dfh, &flags_awhh,
-                  &nED, &eSwapCoords, &ecolvars,
+                  &nED, &eSwapCoords,
                   nullptr);
 
     sfree(version);
@@ -1987,7 +1940,6 @@ void write_checkpoint(const char *fn, gmx_bool bNumberAndKeep,
         (do_cpt_EDstate(gmx_fio_getxdr(fp), FALSE, nED, edsamhist, nullptr) < 0)      ||
         (do_cpt_awh(gmx_fio_getxdr(fp), FALSE, flags_awhh, state->awhHistory.get(), NULL) < 0) ||
         (do_cpt_swapstate(gmx_fio_getxdr(fp), FALSE, eSwapCoords, swaphist, nullptr) < 0) ||
-        (do_cpt_colvars(gmx_fio_getxdr(fp), FALSE, ecolvars, colvarshist, nullptr) < 0) ||
         (do_cpt_files(gmx_fio_getxdr(fp), FALSE, &outputfiles, &noutputfiles, nullptr,
                       file_version) < 0))
     {
@@ -2245,7 +2197,7 @@ static void read_checkpoint(const char *fn, FILE **pfplog,
     int                  eIntegrator_f, nppnodes_f, npmenodes_f;
     ivec                 dd_nc_f;
     int                  natoms, ngtc, nnhpres, nhchainlength, nlambda, fflags, flags_eks, flags_enh, flags_dfh, flags_awhh;
-    int                  nED, eSwapCoords, ecolvars;
+    int                  nED, eSwapCoords;
     int                  ret;
     gmx_file_position_t *outputfiles;
     int                  nfiles;
@@ -2276,7 +2228,7 @@ static void read_checkpoint(const char *fn, FILE **pfplog,
                   &nppnodes_f, dd_nc_f, &npmenodes_f,
                   &natoms, &ngtc, &nnhpres, &nhchainlength, &nlambda,
                   &fflags, &flags_eks, &flags_enh, &flags_dfh, &flags_awhh,
-                  &nED, &eSwapCoords, &ecolvars, nullptr);
+                  &nED, &eSwapCoords, nullptr);
 
     if (bAppendOutputFiles &&
         file_version >= 13 && double_prec != GMX_DOUBLE)
@@ -2458,16 +2410,6 @@ static void read_checkpoint(const char *fn, FILE **pfplog,
         observablesHistory->swapHistory = std::unique_ptr<swaphistory_t>(new swaphistory_t {});
     }
     ret = do_cpt_swapstate(gmx_fio_getxdr(fp), TRUE, eSwapCoords, observablesHistory->swapHistory.get(), nullptr);
-    if (ret)
-    {
-        cp_error();
-    }
-
-    if (ecolvars != 0 && observablesHistory->colvarsHistory == nullptr)
-    {
-        observablesHistory->colvarsHistory = std::unique_ptr<colvarshistory_t>(new colvarshistory_t{});
-    }
-    ret = do_cpt_colvars(gmx_fio_getxdr(fp), TRUE, ecolvars, observablesHistory->colvarsHistory.get(), nullptr);
     if (ret)
     {
         cp_error();
@@ -2705,7 +2647,7 @@ void read_checkpoint_part_and_step(const char  *filename,
     int       flags_eks, flags_enh, flags_dfh, flags_awhh;
     double    t;
     t_state   state;
-    int       nED, eSwapCoords, ecolvars;
+    int       nED, eSwapCoords;
     t_fileio *fp;
 
     if (filename == nullptr ||
@@ -2726,7 +2668,7 @@ void read_checkpoint_part_and_step(const char  *filename,
                   &eIntegrator, simulation_part, step, &t, &nppnodes, dd_nc, &npme,
                   &state.natoms, &state.ngtc, &state.nnhpres, &state.nhchainlength,
                   &nlambda, &state.flags, &flags_eks, &flags_enh, &flags_dfh, &flags_awhh,
-                  &nED, &eSwapCoords, &ecolvars, nullptr);
+                  &nED, &eSwapCoords, nullptr);
 
     gmx_fio_close(fp);
 }
@@ -2743,7 +2685,7 @@ static void read_checkpoint_data(t_fileio *fp, int *simulation_part,
     ivec                 dd_nc;
     int                  nlambda;
     int                  flags_eks, flags_enh, flags_dfh, flags_awhh;
-    int                  nED, eSwapCoords, ecolvars;
+    int                  nED, eSwapCoords;
     int                  nfiles_loc;
     gmx_file_position_t *files_loc = nullptr;
     int                  ret;
@@ -2753,7 +2695,7 @@ static void read_checkpoint_data(t_fileio *fp, int *simulation_part,
                   &eIntegrator, simulation_part, step, t, &nppnodes, dd_nc, &npme,
                   &state->natoms, &state->ngtc, &state->nnhpres, &state->nhchainlength,
                   &nlambda, &state->flags, &flags_eks, &flags_enh, &flags_dfh, &flags_awhh,
-                  &nED, &eSwapCoords, &ecolvars, nullptr);
+                  &nED, &eSwapCoords, nullptr);
     ret =
         do_cpt_state(gmx_fio_getxdr(fp), state->flags, state, nullptr);
     if (ret)
@@ -2795,13 +2737,6 @@ static void read_checkpoint_data(t_fileio *fp, int *simulation_part,
 
     swaphistory_t swaphist = {};
     ret = do_cpt_swapstate(gmx_fio_getxdr(fp), TRUE, eSwapCoords, &swaphist, nullptr);
-    if (ret)
-    {
-        cp_error();
-    }
-
-    colvarshistory_t colvarshist = {};
-    ret = do_cpt_colvars(gmx_fio_getxdr(fp), TRUE, ecolvars, &colvarshist, nullptr);
     if (ret)
     {
         cp_error();
@@ -2905,7 +2840,7 @@ void list_checkpoint(const char *fn, FILE *out)
     ivec                 dd_nc;
     int                  nlambda;
     int                  flags_eks, flags_enh, flags_dfh, flags_awhh;;
-    int                  nED, eSwapCoords, ecolvars;
+    int                  nED, eSwapCoords;
     int                  ret;
     gmx_file_position_t *outputfiles;
     int                  nfiles;
@@ -2918,7 +2853,7 @@ void list_checkpoint(const char *fn, FILE *out)
                   &eIntegrator, &simulation_part, &step, &t, &nppnodes, dd_nc, &npme,
                   &state.natoms, &state.ngtc, &state.nnhpres, &state.nhchainlength,
                   &nlambda, &state.flags,
-                  &flags_eks, &flags_enh, &flags_dfh, &flags_awhh, &nED, &eSwapCoords, &ecolvars,
+                  &flags_eks, &flags_enh, &flags_dfh, &flags_awhh, &nED, &eSwapCoords,
                   out);
     ret = do_cpt_state(gmx_fio_getxdr(fp), state.flags, &state, out);
     if (ret)
@@ -2957,12 +2892,6 @@ void list_checkpoint(const char *fn, FILE *out)
     {
         swaphistory_t swaphist = {};
         ret = do_cpt_swapstate(gmx_fio_getxdr(fp), TRUE, eSwapCoords, &swaphist, out);
-    }
-
-    if (ret == 0)
-    {
-        colvarshistory_t colvarshist = {};
-        ret = do_cpt_colvars(gmx_fio_getxdr(fp), TRUE, ecolvars, &colvarshist, out);
     }
 
     if (ret == 0)
