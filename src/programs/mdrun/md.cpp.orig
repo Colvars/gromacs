@@ -127,9 +127,6 @@
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/stringutil.h"
 
-#include "gromacs/colvars/colvarproxy_gromacs.h"
-#include "gromacs/mdtypes/colvarshistory.h"
-
 #include "deform.h"
 #include "membed.h"
 #include "repl_ex.h"
@@ -858,52 +855,6 @@ double gmx::do_md(FILE *fplog, t_commrec *cr, const gmx::MDLogger &mdlog,
             }
         }
         fprintf(fplog, "\n");
-    }
-
-    /* COLVARS */
-    if (opt2bSet("-colvars",nfile,fnm))
-    {
-
-        char **fnms;
-        int nfile_in;
-        std::string filename_restart;
-        std::string prefix;
-
-        ir->bColvars = TRUE;
-
-        /* Retrieve filenames */
-        nfile_in = opt2fns(&fnms, "-colvars", nfile, fnm);
-        std::vector< std::string> filenames(fnms, fnms+nfile_in);
-
-        if (opt2bSet("-colvars_restart",nfile,fnm))
-        {
-            filename_restart = opt2fn("-colvars_restart",nfile,fnm);
-        }
-
-        /* Determine the prefix for the colvars output files, based on the logfile name. */
-        std::string logfile = ftp2fn(efLOG, nfile, fnm);
-        /* 4 = ".log".length() */
-        if(logfile.length() > 4)
-        {
-            prefix = logfile.substr(0,logfile.length()-4);
-        }
-
-        ir->colvars_proxy =  new colvarproxy_gromacs();
-        ir->colvars_proxy->init(ir,ir->init_step,top_global, observablesHistory, prefix, filenames,filename_restart, cr, MASTER(cr) ? as_rvec_array(state->x.data()) : nullptr);
-    }
-    else
-    {
-        ir->bColvars = FALSE;
-        if (opt2bSet("-colvars_restart",nfile,fnm))
-        {
-            gmx_fatal(FARGS, "-colvars_restart can only be used together with the -colvars option.");
-        }
-        if(observablesHistory->colvarsHistory) {
-            gmx_fatal(FARGS,
-                "The checkpoint is from a run with colvars, "
-                "but the current run did not specify the -colvars option. "
-                "Either specify the -colvars option to mdrun, or do not use this checkpoint file.");
-        }
     }
 
     walltime_accounting_start(walltime_accounting);
@@ -2092,13 +2043,6 @@ double gmx::do_md(FILE *fplog, t_commrec *cr, const gmx::MDLogger &mdlog,
     if (ir->bDoAwh)
     {
         delete ir->awh;
-    }
-
-    /* COLVARS */
-    if (ir->bColvars)
-    {
-        ir->colvars_proxy->finish(cr);
-        delete ir->colvars_proxy;
     }
 
     // Clean up swapcoords

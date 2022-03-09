@@ -111,6 +111,7 @@
 #include "gromacs/utility/pleasecite.h"
 #include "gromacs/utility/smalloc.h"
 #include "gromacs/utility/sysinfo.h"
+#include "gromacs/colvars/colvarproxy_gromacs.h"
 
 #include "nbnxn_gpu.h"
 #include "nbnxn_kernels/nbnxn_kernel_cpu.h"
@@ -839,8 +840,20 @@ computeSpecialForces(FILE             *fplog,
      */
     if (computeForces)
     {
+
         /* Collect forces from modules */
         forceProviders->calculateForces(cr, mdatoms, box, t, x, forceWithVirial);
+    }
+
+    /* COLVARS */
+    /* Colvars Module needs some updated data then compute the forces */
+    if (inputrec->bColvars)
+    {
+        t_pbc pbc;
+        set_pbc(&pbc, inputrec->ePBC, box);
+        inputrec->colvars_proxy->update_data(cr, step, pbc, box, bNS);
+
+        inputrec->colvars_proxy->calculateForces(cr, box, x, forceWithVirial);
     }
 
     if (inputrec->bPull && pull_have_potential(inputrec->pull_work))
