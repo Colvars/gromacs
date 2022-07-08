@@ -572,6 +572,9 @@ include(gmxManageTNG)
 
 include(gmxManageLmfit)
 
+include(gmxManageColvars)
+include(gmxManageLepton)
+
 # The earliest version of the CUDA toolkit that supports c++14 is 9.0
 set(REQUIRED_CUDA_VERSION 9.0)
 set(REQUIRED_CUDA_COMPUTE_CAPABILITY 3.0)

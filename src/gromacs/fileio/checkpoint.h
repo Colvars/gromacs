@@ -238,6 +238,8 @@ struct CheckpointHeaderContents
     int nED;
     //! Enum for coordinate swapping.
     int eSwapCoords;
+    //! Colvars
+    int ecolvars;
     //! Whether the checkpoint was written by modular simulator.
     bool isModularSimulatorCheckpoint = false;
 };

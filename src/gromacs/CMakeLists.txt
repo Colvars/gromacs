@@ -142,6 +142,12 @@ if (WIN32)
 endif()
 list(APPEND libgromacs_object_library_dependencies thread_mpi)
 
+# Add Colvars and Lepton targets, embed their object code in libgromacs
+gmx_manage_colvars()
+gmx_manage_lepton()
+list(APPEND libgromacs_object_library_dependencies colvars)
+list(APPEND libgromacs_object_library_dependencies lepton)
+
 configure_file(version.h.cmakein version.h)
 if(GMX_INSTALL_LEGACY_API)
   install(FILES
@@ -188,6 +194,8 @@ if (GMX_GPU_CUDA)
 else()
     add_library(libgromacs ${LIBGROMACS_SOURCES})
 endif()
+
+gmx_include_colvars_headers()
 
 # Add these contents first because linking their tests can take a lot
 # of time, so we want lots of parallel work still available after
