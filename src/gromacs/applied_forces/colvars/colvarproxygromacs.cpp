@@ -40,6 +40,7 @@
  */
 
 #include "colvarproxygromacs.h"
+#include "gromacs/mdrunutility/multisim.h"
 
 #include <sstream>
 
@@ -56,7 +57,9 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
                                        bool               doParsing,
                                        const std::map<std::string, std::string>& inputStrings,
                                        real ensembleTemperature,
-                                       int  seed) :
+                                       int  seed,
+                                       const gmx_multisim_t* ms,
+                                       bool simRunning) :
     gmxAtoms_(atoms), pbcType_(pbcType), logger_(logger), doParsing_(doParsing)
 {
     engine_name_ = "GROMACS";
@@ -77,6 +80,9 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
     // $ units -ts 'k' 'kJ/mol/K/avogadro'
     boltzmann_ = 0.0083144621;
 
+    // False in grompp but true in mdrun
+    b_simulation_running = simRunning;
+
     // Get the thermostat temperature.
     set_target_temperature(ensembleTemperature);
 
@@ -91,7 +97,6 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
     {
         rng_.seed(seed);
     }
-
 
     // Read configuration file and set up the proxy during pre-processing
     // and during simulation phase but only on the master node.
@@ -117,6 +122,18 @@ ColvarProxyGromacs::ColvarProxyGromacs(const std::string& colvarsConfigString,
         if (cvm::debug())
         {
             cvm::log("Initializing the colvars proxy object.\n");
+        }
+
+        if (isMultiSim(ms)) {
+            inter_me = ms->simulationIndex_;
+            inter_num = ms->numSimulations_;
+            inter_comm = ms->mainRanksComm_;
+            cvm::log("Multiple-replica simulation: this is replica " + cvm::to_str(inter_me + 1)
+                    + " of " + cvm::to_str(inter_num));
+        } else {
+            inter_me = 0;
+            inter_num = 0;
+            inter_comm = MPI_COMM_NULL;
         }
 
         int errorCode = colvarproxy::setup();
@@ -241,6 +258,59 @@ void ColvarProxyGromacs::updateAtomProperties(int index)
     atoms_masses[index]  = mass;
     atoms_charges[index] = gmxAtoms_.atom[atoms_ids[index]].q;
 }
+
+
+// multi-replica support
+
+int ColvarProxyGromacs::replica_enabled()
+{
+  return (inter_comm != MPI_COMM_NULL) ? COLVARS_OK : COLVARS_NOT_IMPLEMENTED;
+}
+
+
+int ColvarProxyGromacs::replica_index()
+{
+  return inter_me;
+}
+
+
+int ColvarProxyGromacs::num_replicas()
+{
+  return inter_num;
+}
+
+
+void ColvarProxyGromacs::replica_comm_barrier()
+{
+  MPI_Barrier(inter_comm);
+}
+
+
+int ColvarProxyGromacs::replica_comm_recv(char* msg_data,
+                                          int buf_len, int src_rep)
+{
+  MPI_Status status;
+  int retval;
+
+  retval = MPI_Recv(msg_data,buf_len,MPI_CHAR,src_rep,0,inter_comm,&status);
+  if (retval == MPI_SUCCESS) {
+    MPI_Get_count(&status, MPI_CHAR, &retval);
+  } else retval = 0;
+  return retval;
+}
+
+
+int ColvarProxyGromacs::replica_comm_send(char* msg_data,
+                                          int msg_len, int dest_rep)
+{
+  int retval;
+  retval = MPI_Send(msg_data,msg_len,MPI_CHAR,dest_rep,0,inter_comm);
+  if (retval == MPI_SUCCESS) {
+    retval = msg_len;
+  } else retval = 0;
+  return retval;
+}
+
 
 ColvarProxyGromacs::~ColvarProxyGromacs()
 {

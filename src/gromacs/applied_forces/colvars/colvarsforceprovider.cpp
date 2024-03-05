@@ -53,6 +53,7 @@
 #include "gromacs/mdtypes/commrec.h"
 #include "gromacs/mdtypes/enerdata.h"
 #include "gromacs/mdtypes/forceoutput.h"
+#include "gromacs/mdrunutility/multisim.h"
 
 
 namespace gmx
@@ -155,11 +156,12 @@ ColvarsForceProvider::ColvarsForceProvider(const std::string& colvarsConfigStrin
                                            int                              seed,
                                            LocalAtomSetManager*             localAtomSetManager,
                                            const t_commrec*                 cr,
+                                           const gmx_multisim_t*            ms,
                                            double                           simulationTimeStep,
                                            const std::vector<RVec>&         colvarsCoords,
                                            const std::string&               outputPrefix,
                                            const ColvarsForceProviderState& state) :
-    ColvarProxyGromacs(colvarsConfigString, atoms, pbcType, logger, MAIN(cr), inputStrings, ensembleTemperature, seed),
+    ColvarProxyGromacs(colvarsConfigString, atoms, pbcType, logger, MAIN(cr), inputStrings, ensembleTemperature, seed, ms, true),
     stateToCheckpoint_(state)
 {
 

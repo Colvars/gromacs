@@ -58,6 +58,7 @@ struct gmx_mtop_t;
 class WarningHandler;
 enum class PbcType : int;
 struct t_inputrec;
+struct gmx_multisim_t;
 
 namespace gmx
 {
@@ -374,6 +375,7 @@ struct MDModulesNotifiers
                            SeparatePmeRanksPermitted*,
                            const PbcType&,
                            const SimulationTimeStep&,
+                           const gmx_multisim_t*,
                            const t_commrec&,
                            const MdRunInputFilename&,
                            const EdrOutputFilename&>::type simulationSetupNotifier_;

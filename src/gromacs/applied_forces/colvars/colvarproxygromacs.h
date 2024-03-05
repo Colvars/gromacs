@@ -53,7 +53,8 @@
 #include "gromacs/random/threefry.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/utility/logger.h"
-
+#include "gromacs/utility/gmxmpi.h"
+struct gmx_multisim_t;
 
 namespace gmx
 {
@@ -83,6 +84,8 @@ protected:
     //! Activate or not the parsing of the Colvars config file
     bool doParsing_;
 
+    MPI_Comm inter_comm;        // MPI comm with 1 root proc from each world
+    int inter_me, inter_num;    // rank for the inter replica comm
 
     // GROMACS random number generation.
     DefaultRandomEngine           rng_; // gromacs random number generator
@@ -102,6 +105,8 @@ public:
      * \param[in] inputStrings Input files stored as string in the TPR's KVT
      * \param[in] ensembleTemperature the constant ensemble temperature
      * \param[in] seed the colvars seed for random number generator
+     * \param[in] ms the multisim record
+     * \param[in] simRunning whether we are in mdrun (as opposed to grompp)
      */
     ColvarProxyGromacs(const std::string&                        colvarsConfigString,
                        t_atoms                                   atoms,
@@ -110,7 +115,9 @@ public:
                        bool                                      doParsing,
                        const std::map<std::string, std::string>& inputStrings,
                        real                                      ensembleTemperature,
-                       int                                       seed);
+                       int                                       seed,
+                       const gmx_multisim_t*                     ms,
+                       bool                                      simRunning);
     ~ColvarProxyGromacs() override;
 
     //! Update colvars topology of one atom mass and charge from the GROMACS topology
@@ -138,6 +145,20 @@ public:
 
     //! Compute the minimum distance with respect to the PBC between 2 atoms.
     cvm::rvector position_distance(cvm::atom_pos const& pos1, cvm::atom_pos const& pos2) const override;
+
+    //! Are we running a multi-replica simulation? (multisim in gromacs)
+    int replica_enabled() override;
+    //! Index of the local replica in the array
+    int replica_index() override;
+    //! Total number of replicas
+    int num_replicas() override;
+
+    //! Communication barrier between replicas
+    void replica_comm_barrier() override;
+    //! MPI receive between replicas
+    int replica_comm_recv(char *msg_data, int buf_len, int src_rep) override;
+    //! MPI send between replicas
+    int replica_comm_send(char *msg_data, int msg_len, int dest_rep) override;
 };
 
 } // namespace gmx

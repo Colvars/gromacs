@@ -55,6 +55,11 @@
 #include "colvarsoptions.h"
 #include "colvarssimulationsparameters.h"
 
+#include <iostream>
+
+//struct gmx_multisim_t;
+#include "gromacs/mdrunutility/multisim.h"
+
 
 namespace gmx
 {
@@ -87,7 +92,7 @@ public:
      *     KeyValueTreeObjectBuilder as parameter
      *   - Acess topology using gmx_mtop_t notification
      *   - Access MDLogger for notifications output
-     *   - Access warninp for for grompp warnings output
+     *   - Access warning for for grompp warnings output
      *   - Coordinates, PBC and box for setting up the proxy
      */
     void subscribeToPreProcessingNotifications(MDModulesNotifiers* notifier) override
@@ -182,6 +187,13 @@ public:
         };
         notifier->simulationSetupNotifier_.subscribe(setCommFunction);
 
+        // Retrieve the Multisim Record during simulations setup
+        const auto setMultisimFunction = [this](const gmx_multisim_t *ms) {
+            std::cout << "GETTING MULTISIM: " << ms->numSimulations_ << "simulations\n";
+            this->ColvarsSimulationsParameters_.setMultisim(ms);
+        };
+        notifier->simulationSetupNotifier_.subscribe(setMultisimFunction);
+
         // setting the simulation time step
         const auto setSimulationTimeStepFunction = [this](const SimulationTimeStep& simulationTimeStep) {
             this->ColvarsSimulationsParameters_.setSimulationTimeStep(simulationTimeStep.delta_t);
@@ -241,6 +253,7 @@ public:
                     colvarsOptions_.colvarsSeed(),
                     ColvarsSimulationsParameters_.localAtomSetManager(),
                     ColvarsSimulationsParameters_.comm(),
+                    ColvarsSimulationsParameters_.ms(),
                     ColvarsSimulationsParameters_.simulationTimeStep(),
                     colvarsOptions_.colvarsAtomCoords(),
                     colvarsOptions_.colvarsOutputPrefix(),
