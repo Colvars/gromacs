@@ -99,14 +99,16 @@ int colvarbias_abf::init(std::string const &conf)
   get_keyval(conf, "shared", shared_on, false);
   if (shared_on) {
     cvm::main()->cite_feature("Multiple-walker ABF implementation");
-    if ((proxy->replica_enabled() != COLVARS_OK) ||
-        (proxy->num_replicas() <= 1)) {
-      return cvm::error("Error: shared ABF requires more than one replica.",
-                        COLVARS_INPUT_ERROR);
+    // Do not check for replicas in Gromacs preprocessing, in VMD, etc.
+    if (proxy->simulation_running()) {
+      if (proxy->replica_enabled() != COLVARS_OK || proxy->num_replicas() <= 1) {
+        return cvm::error("Error: shared ABF requires more than one replica.",
+                          COLVARS_INPUT_ERROR);
+      } else {
+        cvm::log("shared ABF will be applied among "+
+                 cvm::to_str(proxy->num_replicas()) + " replicas.\n");
+      }
     }
-    cvm::log("shared ABF will be applied among "+
-             cvm::to_str(proxy->num_replicas()) + " replicas.\n");
-
     // If shared_freq is not set, we default to output_freq
     get_keyval(conf, "sharedFreq", shared_freq, output_freq);
   }

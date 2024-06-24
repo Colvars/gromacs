@@ -62,10 +62,11 @@ ColvarsPreProcessor::ColvarsPreProcessor(const std::string&   colvarsConfigStrin
                        true,
                        std::map<std::string, std::string>(),
                        ensembleTemperature,
-                       seed),
+                       seed,
+                       nullptr,
+                       false),
     x_(x)
 {
-
     // Initialize t_pbc struct
     set_pbc(&gmxPbc_, pbcType, box);
 
