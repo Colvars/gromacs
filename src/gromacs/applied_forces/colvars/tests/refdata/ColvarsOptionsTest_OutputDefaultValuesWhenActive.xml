@@ -5,7 +5,7 @@
 ; Colvars bias
 colvars-active           = true
 ; colvars config file
-colvars-configfile       = 
+colvars-configfile       = colvars.dat
 ; Colvars seed
 colvars-seed             = -1
 </String>
