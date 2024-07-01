@@ -370,7 +370,9 @@ t_state::t_state() :
     dfhist(nullptr),
     awhHistory(nullptr),
     ddp_count(0),
-    ddp_count_cg_gl(0)
+    ddp_count_cg_gl(0),
+    xa_old_whole_colvars(nullptr),
+    n_colvars_atoms(0)
 
 {
     clear_mat(box);
