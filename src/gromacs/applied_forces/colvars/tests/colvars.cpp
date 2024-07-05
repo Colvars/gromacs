@@ -77,6 +77,7 @@ public:
     void addMdpOptionColvarsActive()
     {
         mdpValueBuilder_.rootObject().addValue("colvars-active", std::string("yes"));
+        mdpValueBuilder_.rootObject().addValue("colvars-filename", std::string("colvars.dat"));
     }
 
     //! build an mdp options tree that sets the options for the Colvars module
