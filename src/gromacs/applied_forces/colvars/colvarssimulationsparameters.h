@@ -50,7 +50,6 @@
 #include "gromacs/pbcutil/pbc.h"
 #include "gromacs/topology/atoms.h"
 #include "gromacs/utility/logger.h"
-struct gmx_multisim_t;
 
 struct gmx_mtop_t;
 
@@ -110,12 +109,7 @@ public:
     //! Return the communicator
     const t_commrec* comm() const;
 
-    //! Set the Multisim record
-    void setMultisim(const gmx_multisim_t* ms);
-    //! Return Multisim record
-    const gmx_multisim_t* ms() const;
-
-    /*! \brief Set the logger for Colvars during mdrun
+    /*! \brief Set the logger for QMMM during mdrun
      * \param[in] logger Logger instance to be used for output
      */
     void setLogger(const MDLogger& logger);
@@ -134,8 +128,6 @@ private:
     t_atoms gmxAtoms_;
     //! The communicator
     const t_commrec* cr_;
-    //! The multisim record
-    const gmx_multisim_t* ms_;
     //! MDLogger for notifications during mdrun
     const MDLogger* logger_ = nullptr;
 

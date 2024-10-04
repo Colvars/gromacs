@@ -689,7 +689,11 @@ include(gmxManageLmfit)
 
 include(gmxManageMuparser)
 
+include(gmxManageLepton)
+
 include(gmxManageColvars)
+
+include(gmxManageLepton)
 
 include(gmxManagePlumed)
 

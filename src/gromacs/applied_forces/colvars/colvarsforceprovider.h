@@ -61,7 +61,6 @@
 
 enum class PbcType : int;
 struct t_commrec;
-struct gmx_multisim_t;
 
 
 namespace gmx
@@ -183,7 +182,6 @@ public:
      * \param[in] seed The colvars seed for random number generator
      * \param[in] localAtomSetManager Atom Manager to retrieve Colvars index atoms
      * \param[in] cr Communication Record
-     * \param[in] ms Multi-simulation record
      * \param[in] simulationTimeStep The simulation time step
      * \param[in] colvarsCoords The colvars atoms coordinates retrived from the TPR's KVT
      * \param[in] outputPrefix The prefix for output colvars files
@@ -198,7 +196,6 @@ public:
                          int                                       seed,
                          LocalAtomSetManager*                      localAtomSetManager,
                          const t_commrec*                          cr,
-                         const gmx_multisim_t*                     ms,
                          double                                    simulationTimeStep,
                          const std::vector<RVec>&                  colvarsCoords,
                          const std::string&                        outputPrefix,
