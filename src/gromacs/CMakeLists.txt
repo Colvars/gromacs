@@ -411,6 +411,11 @@ gmx_manage_lmfit()
 target_link_libraries(libgromacs PRIVATE lmfit)
 target_link_libraries(libgromacs PRIVATE muparser::muparser)
 
+gmx_manage_colvars()
+target_link_libraries(libgromacs PRIVATE colvars)
+gmx_manage_lepton()
+target_link_libraries(libgromacs PRIVATE lepton)
+
 # Make sure we fix "everything" found by compilers that support that
 gmx_warn_on_everything(libgromacs)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
