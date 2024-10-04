@@ -69,6 +69,7 @@
 #include "gromacs/mdtypes/pullhistory.h"
 #include "gromacs/mdtypes/state.h"
 #include "gromacs/mdtypes/swaphistory.h"
+#include "gromacs/mdtypes/colvarshistory.h"
 #include "gromacs/modularsimulator/modularsimulator.h"
 #include "gromacs/trajectory/trajectoryframe.h"
 #include "gromacs/utility/arrayref.h"
@@ -1289,6 +1290,14 @@ static void do_cpt_header(XDR* xd, gmx_bool bRead, FILE* list, CheckpointHeaderC
     {
         contents->isModularSimulatorCheckpoint = false;
     }
+    if (contents->file_version >= CheckPointVersion::Colvars)
+    {
+        do_cpt_int_err(xd, "colvars atoms", &contents->ecolvars, list);
+    }
+    else
+    {
+        contents->ecolvars = 0;
+    }
 }
 
 static int do_cpt_footer(XDR* xd, CheckPointVersion file_version)
@@ -2041,6 +2050,36 @@ static int do_cpt_EDstate(XDR* xd, gmx_bool bRead, int nED, edsamhistory_t* EDst
     return 0;
 }
 
+/* This function stores the last whole configuration of the colvars atoms in the .cpt file */
+static int do_cpt_colvars(XDR* xd, gmx_bool bRead, int ecolvars, colvarshistory_t* colvarsstate, FILE* list)
+{
+
+    if (ecolvars == 0)
+    {
+        return 0;
+    }
+
+    colvarsstate->bFromCpt = bRead;
+    colvarsstate->n_atoms  = ecolvars;
+
+    /* Write data */
+    char buf[STRLEN];
+    sprintf(buf, "Colvars atoms in reference structure : %d", ecolvars);
+    sprintf(buf, "Colvars xa_old");
+    if (bRead)
+    {
+        snew(colvarsstate->xa_old_whole, colvarsstate->n_atoms);
+        do_cpt_n_rvecs_err(xd, buf, colvarsstate->n_atoms, colvarsstate->xa_old_whole, list);
+    }
+    else
+    {
+        do_cpt_n_rvecs_err(xd, buf, colvarsstate->n_atoms, colvarsstate->xa_old_whole_p, list);
+    }
+
+    return 0;
+}
+
+
 static int do_cpt_correlation_grid(XDR*                         xd,
                                    gmx_bool                     bRead,
                                    gmx_unused int               fflags,
@@ -2453,6 +2492,7 @@ void write_checkpoint_data(t_fileio*                         fp,
                              observablesHistory->swapHistory.get(),
                              nullptr)
             < 0)
+        || (do_cpt_colvars(gmx_fio_getxdr(fp), FALSE, headerContents.ecolvars, observablesHistory->colvarsHistory.get(), nullptr) < 0)
         || (do_cpt_files(gmx_fio_getxdr(fp), FALSE, outputfiles, nullptr, headerContents.file_version) < 0))
     {
         gmx_file("Cannot read/write checkpoint; corrupt file, or maybe you are out of disk space?");
@@ -2853,6 +2893,18 @@ static void read_checkpoint(const std::filesystem::path&   fn,
         cp_error();
     }
 
+    if (headerContents->ecolvars != 0 && observablesHistory->colvarsHistory == nullptr)
+    {
+        observablesHistory->colvarsHistory = std::make_unique<colvarshistory_t>(colvarshistory_t{});
+    }
+    ret = do_cpt_colvars(gmx_fio_getxdr(fp), TRUE, headerContents->ecolvars,
+                           observablesHistory->colvarsHistory.get(), nullptr);
+    if (ret)
+    {
+        cp_error();
+    }
+
+
     std::vector<gmx_file_position_t> outputfiles;
     ret = do_cpt_files(gmx_fio_getxdr(fp), TRUE, &outputfiles, nullptr, headerContents->file_version);
     if (ret)
@@ -3032,6 +3084,13 @@ static CheckpointHeaderContents read_checkpoint_data(t_fileio*                  
         cp_error();
     }
 
+    colvarshistory_t colvarshist = {};
+    ret = do_cpt_colvars(gmx_fio_getxdr(fp), TRUE, headerContents.ecolvars, &colvarshist, nullptr);
+    if (ret)
+    {
+        cp_error();
+    }
+
     ret = do_cpt_files(gmx_fio_getxdr(fp), TRUE, outputfiles, nullptr, headerContents.file_version);
 
     if (ret)
@@ -3155,6 +3214,12 @@ void list_checkpoint(const std::filesystem::path& fn, FILE* out)
     {
         swaphistory_t swaphist = {};
         ret = do_cpt_swapstate(gmx_fio_getxdr(fp), TRUE, headerContents.eSwapCoords, &swaphist, out);
+    }
+
+    if (ret == 0)
+    {
+        colvarshistory_t colvarshist = {};
+        ret = do_cpt_colvars(gmx_fio_getxdr(fp), TRUE, headerContents.ecolvars, &colvarshist, out);
     }
 
     if (ret == 0)
