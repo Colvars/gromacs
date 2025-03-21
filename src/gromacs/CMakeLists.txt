@@ -469,6 +469,8 @@ if (HAVE_MUPARSER)
 endif()
 gmx_manage_colvars()
 target_link_libraries(libgromacs PRIVATE colvars)
+gmx_manage_lepton()
+target_link_libraries(libgromacs PRIVATE lepton)
 target_link_libraries(libgromacs PRIVATE plumedgmx)
 
 # Make sure we fix "everything" found by compilers that support that

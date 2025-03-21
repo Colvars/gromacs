@@ -113,9 +113,6 @@ public:
     //! Set the MDLogger instance
     void setLogger(const MDLogger& logger);
 
-    //! Get the logger
-    const MDLogger& logger() const;
-
     /*! \brief Process EdrOutputFilename notification during mdrun.
      * Used to set the prefix of Colvars output files based on the .edr filename
      * \param[in] filename name of the *.edr file that mdrun will produce
@@ -219,11 +216,8 @@ private:
 
     real ensembleTemperature_;
 
-    /*! \brief MDLogger during mdrun
-     *
-     * This is a pointer only because we need an "optional reference"
-     * to a const MDLogger before the notification always provides the
-     * actual reference. */
+
+    //! Logger instance
     const MDLogger* logger_ = nullptr;
 
     /*! \brief String containing the prefix for output colvars files

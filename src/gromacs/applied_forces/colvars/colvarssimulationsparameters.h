@@ -121,7 +121,7 @@ public:
     void setLogger(const MDLogger& logger);
 
     //! Get the logger instance
-    const MDLogger& logger() const;
+    const MDLogger* logger() const;
 
 private:
     //! The LocalAtomSetManager
@@ -136,11 +136,7 @@ private:
     const t_commrec* cr_;
     //! The multisim record
     const gmx_multisim_t* ms_;
-    /*! \brief MDLogger during mdrun
-     *
-     * This is a pointer only because we need an "optional reference"
-     * to a const MDLogger before the notification always provides the
-     * actual reference. */
+    //! MDLogger for notifications during mdrun
     const MDLogger* logger_ = nullptr;
 
 
