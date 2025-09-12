@@ -706,6 +706,8 @@ include(gmxManageMuparser)
 
 include(gmxManageColvars)
 
+include(gmxManageLepton)
+
 include(gmxManagePlumed)
 
 ##################################################
