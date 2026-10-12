@@ -777,6 +777,8 @@ else()
 endif()
 mark_as_advanced(GMX_HAVE_COLVARS)
 
+include(gmxManageLepton)
+
 include(gmxManagePlumed)
 
 include(gmxManageFMM)
