@@ -49,7 +49,7 @@ function(gmx_manage_lepton)
 
     file(GLOB LEPTON_SOURCES ${LEPTON_DIR}/src/*.cpp)
     add_library(lepton_objlib OBJECT ${LEPTON_SOURCES})
-    target_include_directories(lepton_objlib PRIVATE ${LEPTON_DIR}/include)
+    target_include_directories(lepton_objlib SYSTEM PRIVATE ${LEPTON_DIR}/include)
 
     # For simplicity, Lepton is built as a static library for now
     target_compile_options(lepton_objlib PRIVATE -DLEPTON_BUILDING_STATIC_LIBRARY)
