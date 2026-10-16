@@ -32,9 +32,9 @@
 # the research papers on the package. Check out https://www.gromacs.org.
 
 
-# Add Lepton library, which is developed and distributed as part of OpenMM. The following link
-# references the OpenMM version that the library was taken from:
-# https://github.com/openmm/openmm/commit/4dd93764dd26847c3ebf5c927f3ac26c9ff90d0e
+# Add Lepton library, which is developed and distributed as part of OpenMM.
+# See src/external/lepton/README.md for details
+
 
 gmx_option_multichoice(GMX_USE_LEPTON
     "Build the Lepton library interfaced with GROMACS"
